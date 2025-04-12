@@ -1,8 +1,10 @@
+// routes/users.js
+
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User'); // Make sure this path is correct!
+const User = require('../models/User'); // Import the User model
 
 // POST /users/register
 router.post('/register', async (req, res) => {
@@ -27,7 +29,7 @@ router.post('/register', async (req, res) => {
 
     await newUser.save();
 
-    // Create token (auto-login)
+    // Create token
     const token = jwt.sign(
       { userId: newUser._id, role: newUser.role },
       process.env.JWT_SECRET,
@@ -83,4 +85,6 @@ router.post('/login', async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = router; // Export the router
+
+
