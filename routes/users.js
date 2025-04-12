@@ -1,70 +1,31 @@
-// routes/users.js
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const express = require('express');
-const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User'); // Import the User model
-
-// POST /users/register
-router.post('/register', async (req, res) => {
-  const { username, email, password, role } = req.body;
+// POST /users/google-login
+router.post('/google-login', async (req, res) => {
+  const { tokenId } = req.body;
 
   try {
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: 'User already exists' });
-
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create user
-    const newUser = new User({
-      username,
-      email,
-      password: hashedPassword,
-      role: role || 'client',
+    const ticket = await client.verifyIdToken({
+      idToken: tokenId,
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
 
-    await newUser.save();
+    const payload = ticket.getPayload();
+    const { email, name } = payload;
 
-    // Create token
-    const token = jwt.sign(
-      { userId: newUser._id, role: newUser.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    let user = await User.findOne({ email });
 
-    res.status(201).json({
-      message: 'User registered successfully',
-      token,
-      user: {
-        id: newUser._id,
-        username: newUser.username,
-        email: newUser.email,
-        role: newUser.role
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-});
+    if (!user) {
+      user = new User({
+        username: name,
+        email,
+        password: 'google_oauth', // You can mark this differently or skip password validation
+        role: 'client',
+      });
+      await user.save();
+    }
 
-// POST /users/login
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    // Find user
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Invalid email or password' });
-
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid email or password' });
-
-    // Create token
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -77,14 +38,11 @@ router.post('/login', async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
-        role: user.role
+        role: user.role,
       }
     });
+
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(401).json({ message: 'Google authentication failed', error: err.message });
   }
 });
-
-module.exports = router; // Export the router
-
-
