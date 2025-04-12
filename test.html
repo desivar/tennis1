@@ -15,6 +15,30 @@
         function onSignIn(googleUser) {
             var id_token = googleUser.getAuthResponse().id_token;
             console.log("Google ID Token: " + id_token); // Log the token to the console.
+
+            // Send the id_token to your server
+            fetch('/auth/google', { // Replace '/auth/google' with your server's endpoint
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id_token: id_token })
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json(); // Or response.text(), depending on your server's response
+                } else {
+                    throw new Error('Network response was not ok.');
+                }
+            })
+            .then(data => {
+                console.log('Server response:', data); // Log the server's response
+                // Handle the server's response here (e.g., redirect the user)
+            })
+            .catch(error => {
+                console.error('There has been a problem with your fetch operation:', error);
+                // Handle errors
+            });
         }
     </script>
 
