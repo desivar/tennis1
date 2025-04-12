@@ -32,7 +32,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const users = await User.find().select('-password');
     res.json(users);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Error retrieving users.' });
   }
 });
 
@@ -47,7 +47,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
     const user = await User.findById(req.user.userId).select('-password');
     res.json(user);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Error retrieving profile.' });
   }
 });
 
@@ -69,7 +69,7 @@ router.post('/', validateUser, async (req, res) => {
     const newUser = await user.save();
     res.status(201).json(newUser);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(400).json({ message: 'Error registering user.' });
   }
 });
 
@@ -78,37 +78,37 @@ router.post('/login', async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid email or password.' });
     }
     const passwordMatch = await bcrypt.compare(req.body.password, user.password);
     if (!passwordMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid email or password.' });
     }
     const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Error logging in.' });
   }
 });
 
-// PUT (update) a user by ID (protected)
-router.put('/:id', authenticateToken, getUser, async (req, res) => {
-  if (req.body.password != null) {
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
-    res.user.password = hashedPassword;
+// PATCH (update) a user by ID (protected)
+router.patch('/:id', authenticateToken, getUser, async (req, res) => {
+  if (req.body.password) {
+    res.user.password = await bcrypt.hash(req.body.password, 10);
   }
-  if (req.body.username != null) {
+  if (req.body.username) {
     res.user.username = req.body.username;
   }
-  if (req.body.email != null) {
+  if (req.body.email) {
     res.user.email = req.body.email;
   }
+  // Add other fields you might want to update here.
 
   try {
     const updatedUser = await res.user.save();
     res.json(updatedUser);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(400).json({ message: 'Error updating user.' });
   }
 });
 
@@ -116,9 +116,9 @@ router.put('/:id', authenticateToken, getUser, async (req, res) => {
 router.delete('/:id', authenticateToken, getUser, async (req, res) => {
   try {
     await res.user.deleteOne();
-    res.json({ message: 'Deleted User' });
+    res.json({ message: 'User deleted.' });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Error deleting user.' });
   }
 });
 
@@ -128,10 +128,10 @@ async function getUser(req, res, next) {
   try {
     user = await User.findById(req.params.id).select('-password');
     if (user == null) {
-      return res.status(404).json({ message: 'Cannot find user' });
+      return res.status(404).json({ message: 'User not found.' });
     }
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: 'Error retrieving user.' });
   }
 
   res.user = user;
