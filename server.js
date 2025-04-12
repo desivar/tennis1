@@ -43,30 +43,43 @@ async function verifyToken(token) {
 }
 
 // Add Google Sign-In route
-app.post('/users/google-login', (req, res) => {
+app.post('/users/google-login', async (req, res) => {
   const idToken = req.body.id_token;
 
-  verifyToken(idToken)
-    .then(payload => {
-      if (payload) {
-        const userId = payload.sub;
-        const email = payload.email;
-        const name = payload.name;
+  try {
+    const payload = await verifyToken(idToken);
+    if (payload) {
+      const userId = payload.sub;
+      const email = payload.email;
+      const name = payload.name;
 
-        // Simple example: Send user info back to the client
-        res.json({ userId, email, name });
+      // --- User Handling Logic (Replace with your database logic) ---
 
-        // Add your user handling logic here (e.g., database interaction)
-        // Check if user exists, create if not, login, create session/JWT
-        // ...
-      } else {
-        res.status(401).json({ message: 'Invalid token' });
+      // Example: Simple in-memory user storage (replace with database)
+      let user = await mongoose.model('User').findOne({ googleId: userId });
+
+      if (!user) {
+        // Create a new user
+        const newUser = new mongoose.model('User')({
+          googleId: userId,
+          email: email,
+          name: name,
+        });
+        user = await newUser.save();
       }
-    })
-    .catch(error => {
-        console.error('There has been a problem with token verification:', error);
-        res.status(500).json({message: 'Server Error'})
-    });
+
+      // Example: Create a simple session (replace with JWT or proper session management)
+      res.json({ message: 'Login successful', user: { userId, email, name } });
+
+      // --- End User Handling Logic ---
+
+    } else {
+      res.status(401).json({ message: 'Invalid token' });
+    }
+  } catch (error) {
+    console.error('There has been a problem with token verification or user handling:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
 });
 
 // Basic route to test if server is running
