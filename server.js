@@ -2,7 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
-const bodyParser = require('body-parser'); // Add this line
+const bodyParser = require('body-parser');
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const itemsRoutes = require('./routes/items');
 const usersRoutes = require('./routes/users');
@@ -17,7 +19,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 // Use express.json() to parse incoming JSON requests
 app.use(express.json());
-app.use(bodyParser.json()); // Add this line
+app.use(bodyParser.json());
 
 // Enable CORS
 app.use(cors());
@@ -26,24 +28,45 @@ app.use(cors());
 app.use('/items', itemsRoutes);
 app.use('/users', usersRoutes);
 
+async function verifyToken(token) {
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    return payload;
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    return null;
+  }
+}
+
 // Add Google Sign-In route
 app.post('/users/google-login', (req, res) => {
   const idToken = req.body.id_token;
 
-  // Verify the idToken using Google's client libraries
-  // ... (Your server-side verification code here) ...
+  verifyToken(idToken)
+    .then(payload => {
+      if (payload) {
+        const userId = payload.sub;
+        const email = payload.email;
+        const name = payload.name;
 
-  // If the token is valid, extract user information
-  // ...
+        // Simple example: Send user info back to the client
+        res.json({ userId, email, name });
 
-  // Create or log in the user in your database
-  // ...
-
-  // Create a session or JWT for your application
-  // ...
-
-  // Send a response to the client
-  res.json({ message: 'Google login successful' }); // Or send user data
+        // Add your user handling logic here (e.g., database interaction)
+        // Check if user exists, create if not, login, create session/JWT
+        // ...
+      } else {
+        res.status(401).json({ message: 'Invalid token' });
+      }
+    })
+    .catch(error => {
+        console.error('There has been a problem with token verification:', error);
+        res.status(500).json({message: 'Server Error'})
+    });
 });
 
 // Basic route to test if server is running
