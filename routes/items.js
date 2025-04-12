@@ -1,4 +1,7 @@
 // POST a new item
+const express = require('express');
+const router = express.Router(); // <== Make sure this line exists!
+const Item = require('../models/Item');
 router.post('/', async (req, res) => {
     const item = new Item({
       name: req.body.name,
@@ -18,4 +21,7 @@ router.post('/', async (req, res) => {
       res.status(400).json({ message: err.message });
     }
   });
+  
+module.exports = router;
+
   
