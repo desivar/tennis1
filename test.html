@@ -17,7 +17,7 @@
             console.log("Google ID Token: " + id_token); // Log the token to the console.
 
             // Send the id_token to your server
-            fetch('/auth/google', { // Replace '/auth/google' with your server's endpoint
+            fetch('/users/google-login', { // Corrected endpoint
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -26,13 +26,13 @@
             })
             .then(response => {
                 if (response.ok) {
-                    return response.json(); // Or response.text(), depending on your server's response
+                    return response.json();
                 } else {
                     throw new Error('Network response was not ok.');
                 }
             })
             .then(data => {
-                console.log('Server response:', data); // Log the server's response
+                console.log('Server response:', data);
                 // Handle the server's response here (e.g., redirect the user)
             })
             .catch(error => {
