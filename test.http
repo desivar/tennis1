@@ -3,7 +3,7 @@ POST http://localhost:5500/users/google-login
 Content-Type: application/json
 
 {
-  "tokenId": "your_real_google_token_here"
+  "tokenId": "ca14c897b8ac20c47fb3d616e1ff6ecf6181405e0af0bd15ea7c1ea6ab36eaf4"
 }
 
 ### Google Login Test (RENDER)
@@ -11,5 +11,5 @@ POST https://tennis1-api.onrender.com/users/google-login
 Content-Type: application/json
 
 {
-  "tokenId": "your_real_google_token_here"
+  "tokenId": "ca14c897b8ac20c47fb3d616e1ff6ecf6181405e0af0bd15ea7c1ea6ab36eaf4"
 }
